@@ -32,27 +32,64 @@ public class CheckoutController {
 			Transaction.Status.SETTLEMENT_PENDING, Transaction.Status.SETTLING,
 			Transaction.Status.SUBMITTED_FOR_SETTLEMENT };
 
-	@RequestMapping(value = "/", method = RequestMethod.GET)
-	public String root(Model model) {
-		return "redirect:checkouts";
-	}
+	
+    @RequestMapping(value = "/", method = RequestMethod.GET)
+    public String root(Model model) {
+        return "redirect:checkouts";
+    }
+
+    @RequestMapping(value = "/checkouts", method = RequestMethod.GET)
+    public String checkout(Model model) {
+        String clientToken = gateway.clientToken().generate();
+        model.addAttribute("clientToken", clientToken);
+  
+        return "checkouts/new";
+    }
+	
 
 	@RequestMapping(value = "/client_token", method = RequestMethod.POST)
 	public ResponseEntity<String> clientTocket(Model model) {
 		String clientToken = gateway.clientToken().generate();
+		System.out.println("1111"+clientToken);
 		return new ResponseEntity<String>(clientToken, HttpStatus.OK);
 	}
 
-	@RequestMapping(value = "/checkouts", method = RequestMethod.GET)
-	public String checkout(Model model) {
-		String clientToken = gateway.clientToken().generate();
-		model.addAttribute("clientToken", clientToken);
-
-		return "checkouts/new";
-	}
+	
 
 	@RequestMapping(value = "/checkouts", method = RequestMethod.POST)
-	public ResponseEntity<String> postForm(@RequestParam("amount") String amount,
+	public String postForm(@RequestParam("amount") String amount, @RequestParam("payment_method_nonce") String nonce,
+			Model model, final RedirectAttributes redirectAttributes) {
+		BigDecimal decimalAmount;
+		try {
+			decimalAmount = new BigDecimal(amount);
+		} catch (NumberFormatException e) {
+			redirectAttributes.addFlashAttribute("errorDetails", "Error: 81503: Amount is an invalid format.");
+			return "redirect:checkouts";
+		}
+
+		TransactionRequest request = new TransactionRequest().amount(decimalAmount).paymentMethodNonce(nonce).options()
+				.submitForSettlement(true).done();
+
+		Result<Transaction> result = gateway.transaction().sale(request);
+
+		if (result.isSuccess()) {
+			Transaction transaction = result.getTarget();
+			return "redirect:checkouts/" + transaction.getId();
+		} else if (result.getTransaction() != null) {
+			Transaction transaction = result.getTransaction();
+			return "redirect:checkouts/" + transaction.getId();
+		} else {
+			String errorString = "";
+			for (ValidationError error : result.getErrors().getAllDeepValidationErrors()) {
+				errorString += "Error: " + error.getCode() + ": " + error.getMessage() + "\n";
+			}
+			redirectAttributes.addFlashAttribute("errorDetails", errorString);
+			return "redirect:checkouts";
+		}
+	}
+
+	@RequestMapping(value = "/checkout", method = RequestMethod.POST)
+	public ResponseEntity<String> checkout(@RequestParam("amount") String amount,
 			@RequestParam("payment_method_nonce") String nonce, Model model,
 			final RedirectAttributes redirectAttributes) {
 		BigDecimal decimalAmount;
@@ -72,6 +109,7 @@ public class CheckoutController {
 			Transaction transaction = result.getTarget();
 			return new ResponseEntity<String>("" + transaction.getId(), HttpStatus.OK);
 		} else if (result.getTransaction() != null) {
+
 			Transaction transaction = result.getTransaction();
 			return new ResponseEntity<String>("" + transaction.getId(), HttpStatus.OK);
 		} else {
@@ -79,7 +117,8 @@ public class CheckoutController {
 			for (ValidationError error : result.getErrors().getAllDeepValidationErrors()) {
 				errorString += "Error: " + error.getCode() + ": " + error.getMessage() + "\n";
 			}
-			return new ResponseEntity<String>(errorString, HttpStatus.EXPECTATION_FAILED);
+			System.out.println("Error: " + errorString);
+			return new ResponseEntity<String>("Error: " + errorString, HttpStatus.EXPECTATION_FAILED);
 		}
 	}
 
@@ -106,7 +145,7 @@ public class CheckoutController {
 		return "checkouts/show";
 	}
 
-	@RequestMapping(value = "/checkouts/{transactionId}", method = RequestMethod.GET)
+	@RequestMapping(value = "/transaction_detail/{transactionId}", method = RequestMethod.GET)
 	public ResponseEntity<String> getTransactionDetail(@PathVariable String transactionId) {
 		Transaction transaction;
 		CreditCard creditCard;
@@ -120,8 +159,9 @@ public class CheckoutController {
 			System.out.println("Exception: " + e);
 			return new ResponseEntity<String>(e.toString(), HttpStatus.FORBIDDEN);
 		}
-		String res = "{isSuccess:'" + Arrays.asList(TRANSACTION_SUCCESS_STATUSES).contains(transaction.getStatus()) + "',"
-				+ "transaction:'" + transaction + "'," + "creditCard:'" + creditCard + "'," + "customer:'" + customer + "'}";
+		String res = "{isSuccess:'" + Arrays.asList(TRANSACTION_SUCCESS_STATUSES).contains(transaction.getStatus())
+				+ "'," + "transaction:'" + transaction + "'," + "creditCard:'" + creditCard + "'," + "customer:'"
+				+ customer + "'}";
 
 		return new ResponseEntity<String>(res, HttpStatus.OK);
 	}

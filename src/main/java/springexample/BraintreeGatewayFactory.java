@@ -1,15 +1,13 @@
 package springexample;
 
-import com.braintreegateway.BraintreeGateway;
-
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-
 import java.util.Map;
 import java.util.Properties;
+
+import com.braintreegateway.BraintreeGateway;
 
 public class BraintreeGatewayFactory {
     public static BraintreeGateway fromConfigMapping(Map<String, String> mapping) {
@@ -24,7 +22,7 @@ public class BraintreeGatewayFactory {
     public static BraintreeGateway fromConfigFile(File configFile) {
         InputStream inputStream = null;
         Properties properties = new Properties();
-
+        
         try {
             inputStream = new FileInputStream(configFile);
             properties.load(inputStream);
@@ -32,9 +30,9 @@ public class BraintreeGatewayFactory {
             System.err.println("Exception: " + e);
         } finally {
             try { inputStream.close(); }
-            catch (IOException e) { System.err.println("Exception: " + e); }
+            catch (IOException e) { System.err.println("Exception 11: " + e); }
         }
-
+        
         return new BraintreeGateway(
             properties.getProperty("BT_ENVIRONMENT"),
             properties.getProperty("BT_MERCHANT_ID"),
