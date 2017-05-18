@@ -69,7 +69,7 @@ public class CheckoutController {
 
 		TransactionRequest request = new TransactionRequest().amount(decimalAmount).paymentMethodNonce(nonce).options()
 				.submitForSettlement(true).done();
-
+		request.customField("ticket_id", "web-tck411111");
 		Result<Transaction> result = gateway.transaction().sale(request);
 
 		if (result.isSuccess()) {
@@ -84,12 +84,13 @@ public class CheckoutController {
 				errorString += "Error: " + error.getCode() + ": " + error.getMessage() + "\n";
 			}
 			redirectAttributes.addFlashAttribute("errorDetails", errorString);
+			System.out.println("errorDetails " +errorString);
 			return "redirect:checkouts";
 		}
 	}
 
 	@RequestMapping(value = "/checkout", method = RequestMethod.POST)
-	public ResponseEntity<String> checkout(@RequestParam("amount") String amount,
+	public ResponseEntity<String> checkout(@RequestParam("ticket_id") String ticketId,@RequestParam("amount") String amount,
 			@RequestParam("payment_method_nonce") String nonce, Model model,
 			final RedirectAttributes redirectAttributes) {
 		BigDecimal decimalAmount;
@@ -103,6 +104,7 @@ public class CheckoutController {
 		TransactionRequest request = new TransactionRequest().amount(decimalAmount).paymentMethodNonce(nonce).options()
 				.submitForSettlement(true).done();
 
+		request.customField("ticket_id", ticketId);
 		Result<Transaction> result = gateway.transaction().sale(request);
 
 		if (result.isSuccess()) {
@@ -122,7 +124,7 @@ public class CheckoutController {
 		}
 	}
 
-	@RequestMapping(value = "/checkouts/{transactionId} ")
+	@RequestMapping(value = "/checkouts/{transactionId}")
 	public String getTransaction(@PathVariable String transactionId, Model model) {
 		Transaction transaction;
 		CreditCard creditCard;
