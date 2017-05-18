@@ -69,6 +69,10 @@ public class CheckoutController {
 
 		TransactionRequest request = new TransactionRequest().amount(decimalAmount).paymentMethodNonce(nonce).options()
 				.submitForSettlement(true).done();
+		request.descriptor()
+        .name("red*tk411111")
+        .done();	
+
 		request.customField("ticket_id", "web-tck411111");
 		Result<Transaction> result = gateway.transaction().sale(request);
 
@@ -103,6 +107,9 @@ public class CheckoutController {
 
 		TransactionRequest request = new TransactionRequest().amount(decimalAmount).paymentMethodNonce(nonce).options()
 				.submitForSettlement(true).done();
+		request.descriptor()
+		.name("red*tk411122")
+        .done();	
 
 		request.customField("ticket_id", ticketId);
 		Result<Transaction> result = gateway.transaction().sale(request);
